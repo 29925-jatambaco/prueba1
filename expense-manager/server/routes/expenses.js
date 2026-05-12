@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getDB } = require('../db');
+const { getDB, saveDB } = require('../db');
 const { isValidAmount, isValidDescription, isValidDate, isValidId, sanitizeString } = require('../utils/validators');
 
 /**
@@ -196,6 +196,9 @@ router.post('/', (req, res) => {
       expenseDate
     );
     
+    // Guardar cambios en disco
+    saveDB();
+    
     // Obtener el gasto creado
     const newExpense = db.prepare(`
       SELECT 
@@ -318,6 +321,9 @@ router.put('/:id', (req, res) => {
     const stmt = db.prepare(`UPDATE expenses SET ${updates.join(', ')} WHERE id = ?`);
     stmt.run(...params);
     
+    // Guardar cambios en disco
+    saveDB();
+    
     // Obtener el gasto actualizado
     const updatedExpense = db.prepare(`
       SELECT 
@@ -377,6 +383,9 @@ router.delete('/:id', (req, res) => {
     
     const stmt = db.prepare('DELETE FROM expenses WHERE id = ?');
     stmt.run(parseInt(id, 10));
+    
+    // Guardar cambios en disco
+    saveDB();
     
     res.json({
       success: true,

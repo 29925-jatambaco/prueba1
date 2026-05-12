@@ -43,31 +43,34 @@ app.use((err, req, res, next) => {
 });
 
 // Inicializar base de datos y arrancar servidor
-initDB();
-
-const server = app.listen(PORT, () => {
-  console.log(`\n🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`📊 API disponible en http://localhost:${PORT}/api`);
-  console.log(`💾 Base de datos: expenses.db\n`);
-});
-
-// Cierre graceful
-process.on('SIGINT', () => {
-  console.log('\n🛑 Cerrando servidor...');
-  closeDB();
-  server.close(() => {
-    console.log('✅ Servidor cerrado');
-    process.exit(0);
+initDB().then(() => {
+  const server = app.listen(PORT, () => {
+    console.log(`\n🚀 Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`📊 API disponible en http://localhost:${PORT}/api`);
+    console.log(`💾 Base de datos: expenses.db\n`);
   });
-});
 
-process.on('SIGTERM', () => {
-  console.log('\n🛑 Cerrando servidor...');
-  closeDB();
-  server.close(() => {
-    console.log('✅ Servidor cerrado');
-    process.exit(0);
+  // Cierre graceful
+  process.on('SIGINT', () => {
+    console.log('\n🛑 Cerrando servidor...');
+    closeDB();
+    server.close(() => {
+      console.log('✅ Servidor cerrado');
+      process.exit(0);
+    });
   });
+
+  process.on('SIGTERM', () => {
+    console.log('\n🛑 Cerrando servidor...');
+    closeDB();
+    server.close(() => {
+      console.log('✅ Servidor cerrado');
+      process.exit(0);
+    });
+  });
+}).catch(err => {
+  console.error('❌ Error al inicializar la base de datos:', err);
+  process.exit(1);
 });
 
 module.exports = app;
