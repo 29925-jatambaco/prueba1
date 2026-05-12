@@ -2,7 +2,7 @@
  * Expense model for database operations
  * @module server/models/expenseModel
  */
-const { getDb } = require('./database');
+const { getDb, saveDatabase } = require('./database');
 
 /**
  * Get all expenses with optional filtering and pagination
@@ -18,7 +18,7 @@ function getAllExpenses(options = {}) {
   const db = getDb();
   const { page = 1, limit = 10, category, startDate, endDate } = options;
   const offset = (page - 1) * limit;
-
+  
   let whereClause = 'WHERE 1=1';
   const params = [];
 
@@ -39,7 +39,8 @@ function getAllExpenses(options = {}) {
 
   // Get total count
   const countQuery = `SELECT COUNT(*) as total FROM expenses e ${whereClause}`;
-  const { total } = db.prepare(countQuery).get(...params);
+  const countResult = db.exec(countQuery, params);
+  const total = countResult.length > 0 ? countResult[0].values[0][0] : 0;
 
   // Get paginated results
   const query = `
@@ -60,8 +61,13 @@ function getAllExpenses(options = {}) {
     LIMIT ? OFFSET ?
   `;
 
-  params.push(limit, offset);
-  const expenses = db.prepare(query).all(...params);
+  const queryParams = [...params, limit, offset];
+  const stmt = db.prepare(query);
+  stmt.bind(queryParams);
+  const expenses = [];
+  while (stmt.step()) {
+    expenses.push(stmt.getAsObject());
+  }
 
   return {
     data: expenses,
@@ -81,7 +87,7 @@ function getAllExpenses(options = {}) {
  */
 function getExpenseById(id) {
   const db = getDb();
-  const expense = db.prepare(`
+  const stmt = db.prepare(`
     SELECT 
       e.*,
       c.name as category_name,
@@ -89,8 +95,14 @@ function getExpenseById(id) {
     FROM expenses e
     JOIN categories c ON e.category_id = c.id
     WHERE e.id = ?
-  `).get(id);
-  return expense || null;
+  `);
+  stmt.bind([id]);
+  
+  if (stmt.step()) {
+    const expense = stmt.getAsObject();
+    return expense;
+  }
+  return null;
 }
 
 /**
@@ -106,14 +118,16 @@ function createExpense(expenseData) {
   const db = getDb();
   const { amount, category_id, description, date } = expenseData;
 
-  const stmt = db.prepare(`
+  db.run(`
     INSERT INTO expenses (amount, category_id, description, date)
     VALUES (?, ?, ?, ?)
-  `);
+  `, [amount, category_id, description, date]);
+  
+  saveDatabase();
 
-  const result = stmt.run(amount, category_id, description, date);
-
-  return getExpenseById(result.lastInsertRowid);
+  const lastIdResult = db.exec('SELECT last_insert_rowid() as id');
+  const lastId = lastIdResult[0].values[0][0];
+  return getExpenseById(lastId);
 }
 
 /**
@@ -126,15 +140,16 @@ function updateExpense(id, expenseData) {
   const db = getDb();
   const { amount, category_id, description, date } = expenseData;
 
-  const stmt = db.prepare(`
+  db.run(`
     UPDATE expenses 
     SET amount = ?, category_id = ?, description = ?, date = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
-  `);
+  `, [amount, category_id, description, date, id]);
+  
+  saveDatabase();
 
-  const result = stmt.run(amount, category_id, description, date, id);
-
-  if (result.changes === 0) {
+  const changes = db.getRowsModified().changes;
+  if (changes === 0) {
     return null;
   }
 
@@ -148,9 +163,10 @@ function updateExpense(id, expenseData) {
  */
 function deleteExpense(id) {
   const db = getDb();
-  const stmt = db.prepare('DELETE FROM expenses WHERE id = ?');
-  const result = stmt.run(id);
-  return result.changes > 0;
+  db.run('DELETE FROM expenses WHERE id = ?', [id]);
+  saveDatabase();
+  const changes = db.getRowsModified().changes;
+  return changes > 0;
 }
 
 /**
@@ -164,7 +180,7 @@ function getExpensesByMonth(year, month) {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
-  return db.prepare(`
+  const stmt = db.prepare(`
     SELECT 
       e.*,
       c.name as category_name,
@@ -173,7 +189,14 @@ function getExpensesByMonth(year, month) {
     JOIN categories c ON e.category_id = c.id
     WHERE e.date BETWEEN ? AND ?
     ORDER BY e.date DESC
-  `).all(startDate, endDate);
+  `);
+  stmt.bind([startDate, endDate]);
+  
+  const expenses = [];
+  while (stmt.step()) {
+    expenses.push(stmt.getAsObject());
+  }
+  return expenses;
 }
 
 module.exports = {

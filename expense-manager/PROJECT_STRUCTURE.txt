@@ -1,0 +1,80 @@
+ESTRUCTURA DEL PROYECTO - GESTOR DE GASTOS PERSONALES
+======================================================
+
+expense-manager/
+├── .env.example                    # Configuración de variables de entorno
+├── README.md                       # Documentación del proyecto
+├── package.json                    # Dependencias y scripts
+├── package-lock.json               # Bloqueo de versiones
+│
+├── client/                         # FRONTEND (Web Components)
+│   ├── index.html                  # Punto de entrada principal
+│   ├── components/                 # Componentes Web personalizados
+│   │   ├── category-filter.js      # Filtro por categorías
+│   │   ├── expense-form.js         # Formulario de gastos
+│   │   ├── expense-list.js         # Lista de gastos con paginación
+│   │   └── expense-summary.js      # Dashboard con estadísticas
+│   └── styles/
+│       └── main.css                # Estilos globales
+│
+├── server/                         # BACKEND (Node.js + Express)
+│   ├── index.js                    # Servidor principal (puerto 6666)
+│   ├── controllers/                # Lógica de negocio
+│   │   ├── categoryController.js   # Controlador de categorías
+│   │   └── expenseController.js    # Controlador de gastos
+│   ├── models/                     # Modelos de datos
+│   │   ├── database.js             # Conexión SQLite
+│   │   ├── categoryModel.js        # Modelo de categorías
+│   │   └── expenseModel.js         # Modelo de gastos
+│   ├── routes/                     # Rutas API REST
+│   │   ├── categories.js           # Rutas de categorías
+│   │   └── expenses.js             # Rutas de gastos
+│   └── scripts/
+│       └── seedData.js             # Script de inicialización de datos
+│
+├── data/                           # BASE DE DATOS (SQLite)
+│   ├── expenses.db                 # Base de datos principal
+│   ├── expenses.db-shm             # Shared memory file (SQLite)
+│   └── expenses.db-wal             # Write-ahead log (SQLite)
+│
+└── tests/                          # PRUEBAS AUTOMATIZADAS
+    ├── models/
+    │   └── expenseModel.test.js    # Tests unitarios de modelos
+    └── routes/
+        └── expenses.test.js        # Tests de integración de APIs
+
+RESUMEN:
+========
+- Total de archivos: 20
+- Frontend: 5 archivos (Web Components + HTML + CSS)
+- Backend: 8 archivos (Controllers + Models + Routes + Server)
+- Tests: 2 archivos (Unitarios + Integración)
+- Configuración: 3 archivos (package.json, .env.example, README)
+- Base de datos: 3 archivos (SQLite + WAL + SHM)
+- Scripts: 1 archivo (seedData.js)
+
+TECNOLOGÍAS:
+============
+- Frontend: Web Components (Vanilla JS), Shadow DOM, CSS Modules
+- Backend: Node.js, Express
+- Base de Datos: SQLite (better-sqlite3)
+- Testing: Jest
+- Puerto: 6666
+
+COMANDOS DISPONIBLES:
+=====================
+npm install        # Instalar dependencias
+npm run dev        # Desarrollo (auto-recarga)
+npm start          # Producción
+npm run seed       # Inicializar datos de prueba
+npm test           # Ejecutar pruebas
+
+ENDPOINTS API:
+==============
+GET    /api/expenses          # Listar gastos
+POST   /api/expenses          # Crear gasto
+PUT    /api/expenses/:id      # Actualizar gasto
+DELETE /api/expenses/:id      # Eliminar gasto
+GET    /api/categories        # Listar categorías
+POST   /api/categories        # Crear categoría
+GET    /api/summary           # Resumen estadístico

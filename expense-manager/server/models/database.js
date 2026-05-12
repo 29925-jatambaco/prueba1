@@ -2,30 +2,46 @@
  * Database initialization and configuration
  * @module server/models/database
  */
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
 const path = require('path');
 
 let db = null;
+let SQL = null;
 
 /**
  * Initialize the SQLite database with required tables
- * @returns {Database} The database instance
+ * @returns {Promise<Database>} The database instance
  */
-function initDatabase() {
+async function initDatabase() {
   const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/expenses.db');
   
   // Ensure data directory exists
-  const fs = require('fs');
   const dataDir = path.dirname(dbPath);
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
+  // Initialize sql.js
+  SQL = await initSqlJs();
+  
+  // Load existing database or create new one
+  try {
+    if (fs.existsSync(dbPath)) {
+      const fileBuffer = fs.readFileSync(dbPath);
+      db = new SQL.Database(fileBuffer);
+      console.log('Database loaded from file');
+    } else {
+      db = new SQL.Database();
+      console.log('New database created');
+    }
+  } catch (err) {
+    console.error('Error loading database, creating new one:', err.message);
+    db = new SQL.Database();
+  }
 
   // Create categories table
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
@@ -35,7 +51,7 @@ function initDatabase() {
   `);
 
   // Create expenses table
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS expenses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       amount REAL NOT NULL,
@@ -49,14 +65,14 @@ function initDatabase() {
   `);
 
   // Create indexes for better performance
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
-    CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category_id);
-  `);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category_id)`);
 
   // Insert default categories if none exist
-  const existingCategories = db.prepare('SELECT COUNT(*) as count FROM categories').get();
-  if (existingCategories.count === 0) {
+  const existingCategories = db.exec('SELECT COUNT(*) as count FROM categories');
+  const count = existingCategories.length > 0 ? existingCategories[0].values[0][0] : 0;
+  
+  if (count === 0) {
     const defaultCategories = [
       { name: 'Food & Dining', color: '#e74c3c' },
       { name: 'Transportation', color: '#3498db' },
@@ -68,17 +84,27 @@ function initDatabase() {
       { name: 'Other', color: '#95a5a6' }
     ];
 
-    const insertCategory = db.prepare('INSERT INTO categories (name, color) VALUES (?, ?)');
-    const insertMany = db.transaction((categories) => {
-      for (const cat of categories) {
-        insertCategory.run(cat.name, cat.color);
-      }
+    defaultCategories.forEach(cat => {
+      db.run('INSERT INTO categories (name, color) VALUES (?, ?)', [cat.name, cat.color]);
     });
-    insertMany(defaultCategories);
+    saveDatabase();
+    console.log('Default categories inserted');
   }
 
   console.log('Database initialized successfully');
   return db;
+}
+
+/**
+ * Save the database to disk
+ */
+function saveDatabase() {
+  if (db && SQL) {
+    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/expenses.db');
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
+  }
 }
 
 /**
@@ -97,13 +123,16 @@ function getDb() {
  */
 function closeDatabase() {
   if (db) {
+    saveDatabase();
     db.close();
     db = null;
+    SQL = null;
   }
 }
 
 module.exports = {
   initDatabase,
   getDb,
-  closeDatabase
+  closeDatabase,
+  saveDatabase
 };

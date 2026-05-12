@@ -2,7 +2,7 @@
  * Category model for database operations
  * @module server/models/categoryModel
  */
-const { getDb } = require('./database');
+const { getDb, saveDatabase } = require('./database');
 
 /**
  * Get all categories
@@ -10,7 +10,12 @@ const { getDb } = require('./database');
  */
 function getAllCategories() {
   const db = getDb();
-  return db.prepare('SELECT * FROM categories ORDER BY name').all();
+  const stmt = db.prepare('SELECT * FROM categories ORDER BY name');
+  const categories = [];
+  while (stmt.step()) {
+    categories.push(stmt.getAsObject());
+  }
+  return categories;
 }
 
 /**
@@ -20,8 +25,12 @@ function getAllCategories() {
  */
 function getCategoryById(id) {
   const db = getDb();
-  const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
-  return category || null;
+  const stmt = db.prepare('SELECT * FROM categories WHERE id = ?');
+  stmt.bind([id]);
+  if (stmt.step()) {
+    return stmt.getAsObject();
+  }
+  return null;
 }
 
 /**
@@ -36,11 +45,13 @@ function createCategory(categoryData) {
   const { name, color = '#3498db' } = categoryData;
 
   try {
-    const stmt = db.prepare('INSERT INTO categories (name, color) VALUES (?, ?)');
-    const result = stmt.run(name, color);
-    return getCategoryById(result.lastInsertRowid);
+    db.run('INSERT INTO categories (name, color) VALUES (?, ?)', [name, color]);
+    saveDatabase();
+    const lastIdResult = db.exec('SELECT last_insert_rowid() as id');
+    const lastId = lastIdResult[0].values[0][0];
+    return getCategoryById(lastId);
   } catch (error) {
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    if (error.message.includes('UNIQUE constraint failed')) {
       throw new Error('Category name already exists');
     }
     throw error;
@@ -58,20 +69,21 @@ function updateCategory(id, categoryData) {
   const { name, color } = categoryData;
 
   try {
-    const stmt = db.prepare(`
+    db.run(`
       UPDATE categories 
       SET name = ?, color = ?
       WHERE id = ?
-    `);
-    const result = stmt.run(name, color, id);
+    `, [name, color, id]);
+    saveDatabase();
 
-    if (result.changes === 0) {
+    const changes = db.getRowsModified().changes;
+    if (changes === 0) {
       return null;
     }
 
     return getCategoryById(id);
   } catch (error) {
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    if (error.message.includes('UNIQUE constraint failed')) {
       throw new Error('Category name already exists');
     }
     throw error;
@@ -85,9 +97,10 @@ function updateCategory(id, categoryData) {
  */
 function deleteCategory(id) {
   const db = getDb();
-  const stmt = db.prepare('DELETE FROM categories WHERE id = ?');
-  const result = stmt.run(id);
-  return result.changes > 0;
+  db.run('DELETE FROM categories WHERE id = ?', [id]);
+  saveDatabase();
+  const changes = db.getRowsModified().changes;
+  return changes > 0;
 }
 
 /**
@@ -97,7 +110,7 @@ function deleteCategory(id) {
  */
 function getCategoryWithCount(id) {
   const db = getDb();
-  const category = db.prepare(`
+  const stmt = db.prepare(`
     SELECT 
       c.*,
       COUNT(e.id) as expense_count,
@@ -106,8 +119,12 @@ function getCategoryWithCount(id) {
     LEFT JOIN expenses e ON c.id = e.category_id
     WHERE c.id = ?
     GROUP BY c.id
-  `).get(id);
-  return category || null;
+  `);
+  stmt.bind([id]);
+  if (stmt.step()) {
+    return stmt.getAsObject();
+  }
+  return null;
 }
 
 module.exports = {

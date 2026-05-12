@@ -1,4 +1,48 @@
 ```
-# Project-specific ignores
-expense-manager/PROJECT_STRUCTURE.txt
+# Dependencies
+node_modules/
+
+# Database files
+*.db
+
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# Build artifacts
+dist/
+build/
+target/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Package lock files
+package-lock.json
+.yarn-integrity
+pnp.yaml
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
 ```

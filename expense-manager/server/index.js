@@ -50,7 +50,7 @@ app.get('/api/summary', async (req, res) => {
 app.use(express.static(path.join(__dirname, '../client')));
 
 // Serve index.html for all other routes (catch-all)
-app.get('/{*path}', (req, res) => {
+app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
@@ -64,9 +64,13 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize database and start server
-const db = initDatabase();
-app.listen(PORT, () => {
-  console.log(`Expense Manager server running on http://localhost:${PORT}`);
+initDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Expense Manager server running on http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
 });
 
 module.exports = app;
