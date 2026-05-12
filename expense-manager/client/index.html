@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Gastos Personales</title>
+  <link rel="stylesheet" href="styles/global.css">
+  
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>💰 Gestor de Gastos Personales</h1>
+      <p>Controla tus finanzas diarias de forma simple y efectiva</p>
+    </header>
+
+    <!-- Notificaciones -->
+    <div id="notification-container"></div>
+
+    <!-- Dashboard de Estadísticas -->
+    <section class="full-width">
+      <dashboard-stats></dashboard-stats>
+    </section>
+
+    <!-- Grid Principal -->
+    <div class="main-grid">
+      <!-- Formulario de Gastos -->
+      <section class="card">
+        <expense-form></expense-form>
+      </section>
+
+      <!-- Gestión de Categorías -->
+      <section class="card">
+        <category-manager></category-manager>
+      </section>
+
+      <!-- Lista de Gastos (Full Width) -->
+      <section class="card full-width">
+        <expense-list></expense-list>
+      </section>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Importar Web Components -->
+  <script src="components/category-manager.js" type="module"></script>
+  <script src="components/expense-form.js" type="module"></script>
+  <script src="components/expense-list.js" type="module"></script>
+  <script src="components/dashboard-stats.js" type="module"></script>
+</body>
+</html>
