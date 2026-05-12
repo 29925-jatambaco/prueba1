@@ -2,33 +2,38 @@
 # Dependencies
 node_modules/
 
-# Build artifacts
-build/
-dist/
-
-# Database
-expenses.db
-
-# Environment variables
+# Environment
 .env
 .env.local
 *.env.*
 
-# Logs
+# Logs and temp files
 *.log
-
-# Temporary files
 *.tmp
-*.swp
 
-# IDE files
+# Editors
 .vscode/
 .idea/
 
-# OS generated files
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build outputs
+dist/
+build/
+coverage/
+htmlcov/
+*.egg-info/
+
+# System
 .DS_Store
 Thumbs.db
 
-# Package lock
-package-lock.json
+# Testing
+.pytest_cache/
+.mypy_cache/
+.coverage
 ```

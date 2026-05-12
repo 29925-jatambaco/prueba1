@@ -1,22 +1,36 @@
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
 const path = require('path');
 
 // Ruta de la base de datos SQLite (archivo local)
 const DB_PATH = path.join(__dirname, '..', 'expenses.db');
 
-let db;
+let db = null;
+let SQL = null;
 
 /**
  * Inicializa la conexión a la base de datos y crea las tablas si no existen
  */
-function initDB() {
-  db = new Database(DB_PATH);
-  
-  // Habilitar foreign keys
-  db.pragma('foreign_keys = ON');
+async function initDB() {
+  if (!SQL) {
+    SQL = await initSqlJs();
+  }
+
+  // Cargar base de datos existente o crear nueva
+  try {
+    if (fs.existsSync(DB_PATH)) {
+      const fileBuffer = fs.readFileSync(DB_PATH);
+      db = new SQL.Database(fileBuffer);
+    } else {
+      db = new SQL.Database();
+    }
+  } catch (err) {
+    console.error('Error loading database:', err);
+    db = new SQL.Database();
+  }
   
   // Crear tabla de categorías
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
@@ -26,7 +40,7 @@ function initDB() {
   `);
   
   // Crear tabla de gastos
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS expenses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       description TEXT NOT NULL,
@@ -50,14 +64,26 @@ function initDB() {
     { name: 'Otros', color: '#95a5a6' }
   ];
   
-  const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name, color) VALUES (?, ?)');
-  
   defaultCategories.forEach(cat => {
-    insertCategory.run(cat.name, cat.color);
+    db.run('INSERT OR IGNORE INTO categories (name, color) VALUES (?, ?)', [cat.name, cat.color]);
   });
+  
+  // Guardar cambios iniciales
+  saveDB();
   
   console.log('✅ Base de datos inicializada correctamente');
   return db;
+}
+
+/**
+ * Guarda la base de datos en disco
+ */
+function saveDB() {
+  if (db) {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(DB_PATH, buffer);
+  }
 }
 
 /**
@@ -65,7 +91,7 @@ function initDB() {
  */
 function getDB() {
   if (!db) {
-    return initDB();
+    throw new Error('Database not initialized. Call initDB() first.');
   }
   return db;
 }
@@ -75,6 +101,7 @@ function getDB() {
  */
 function closeDB() {
   if (db) {
+    saveDB();
     db.close();
     console.log('🔒 Base de datos cerrada');
   }
@@ -83,5 +110,6 @@ function closeDB() {
 module.exports = {
   initDB,
   getDB,
-  closeDB
+  closeDB,
+  saveDB
 };
