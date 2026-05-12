@@ -34,7 +34,7 @@ Una aplicación web moderna y completa para gestionar tus gastos personales, con
 | Backend | Node.js + Express |
 | Base de Datos | SQLite (better-sqlite3) |
 | Estilos | CSS Modules en Shadow DOM |
-| Puerto | 6666 |
+| Puerto | 3001 |
 
 ## 📁 Estructura del Proyecto
 
@@ -93,7 +93,7 @@ npm run dev
 npm start
 ```
 
-La aplicación estará disponible en: **http://localhost:6666**
+La aplicación estará disponible en: **http://localhost:3001**
 
 ## 📡 API Endpoints
 

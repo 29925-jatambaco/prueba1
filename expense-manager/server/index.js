@@ -12,7 +12,7 @@ const categoriesRouter = require('./routes/categories');
 const { initDatabase } = require('./models/database');
 
 const app = express();
-const PORT = process.env.PORT || 6666;
+const PORT = process.env.PORT || 3001;
 
 // Initialize database
 initDatabase();

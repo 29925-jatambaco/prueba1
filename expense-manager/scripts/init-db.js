@@ -3,12 +3,12 @@
  * Crea tablas y datos iniciales si no existen
  */
 
-const Database = require('../server/models/database');
+const { initDatabase } = require('../server/models/database');
 
 console.log('🚀 Inicializando base de datos...');
 
 try {
-  const db = Database.getInstance();
+  const db = initDatabase();
   
   // Verificar que las tablas existen
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
