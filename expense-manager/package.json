@@ -1,0 +1,26 @@
+{
+  "name": "expense-manager",
+  "version": "1.0.0",
+  "description": "Gestor de Gastos Personales con Node.js, Express, SQLite y Web Components",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
+  },
+  "keywords": [
+    "expenses",
+    "finance",
+    "sqlite",
+    "web-components"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
