@@ -8,13 +8,18 @@ const categoryModel = require('../../server/models/categoryModel');
 describe('Expense Model', () => {
   let db;
   let testCategoryId;
+  const uniqueId = Date.now();
 
-  beforeAll(() => {
+  beforeAll(async () => {
     process.env.DATABASE_PATH = ':memory:';
-    db = initDatabase();
+    await initDatabase();
+    db = getDb();
     
-    // Create a test category
-    const category = categoryModel.createCategory({ name: 'Test Category', color: '#ff0000' });
+    // Create a test category with unique name
+    const category = categoryModel.createCategory({ 
+      name: `Test Category ${uniqueId}`, 
+      color: '#ff0000' 
+    });
     testCategoryId = category.id;
   });
 
@@ -84,7 +89,6 @@ describe('Expense Model', () => {
 
   describe('getAllExpenses', () => {
     it('should return paginated expenses', () => {
-      // Create multiple expenses
       for (let i = 1; i <= 15; i++) {
         expenseModel.createExpense({
           amount: i * 10,
@@ -104,7 +108,10 @@ describe('Expense Model', () => {
     });
 
     it('should filter by category', () => {
-      const otherCategory = categoryModel.createCategory({ name: 'Other Test', color: '#00ff00' });
+      const otherCategory = categoryModel.createCategory({ 
+        name: `Other Test ${uniqueId}`, 
+        color: '#00ff00' 
+      });
       
       expenseModel.createExpense({
         amount: 50,

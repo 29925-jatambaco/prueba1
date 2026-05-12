@@ -1,21 +1,21 @@
 ```
-# Dependencies
-node_modules/
-
 # Database files
 *.db
 
-# Environment variables
+# Environment files
 .env
 .env.local
 *.env.*
+
+# Dependencies
+node_modules/
 
 # Build artifacts
 dist/
 build/
 target/
 
-# Python cache
+# Python artifacts
 __pycache__/
 *.pyc
 *.pyo
@@ -28,21 +28,13 @@ __pycache__/
 *.tmp
 *.temp
 
-# OS generated files
+# OS files
 .DS_Store
 Thumbs.db
 
 # IDE files
 .vscode/
 .idea/
-
-# Package lock files
-package-lock.json
-.yarn-integrity
-pnp.yaml
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
+*.swp
+*.swo
 ```

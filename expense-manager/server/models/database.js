@@ -96,11 +96,15 @@ async function initDatabase() {
 }
 
 /**
- * Save the database to disk
+ * Save the database to disk (only for file-based databases)
  */
 function saveDatabase() {
   if (db && SQL) {
     const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/expenses.db');
+    // Skip saving for in-memory databases
+    if (dbPath === ':memory:') {
+      return;
+    }
     const data = db.export();
     const buffer = Buffer.from(data);
     fs.writeFileSync(dbPath, buffer);

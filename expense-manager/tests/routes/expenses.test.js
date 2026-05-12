@@ -2,10 +2,9 @@
  * Integration tests for expenses API
  */
 const request = require('supertest');
-const { initDatabase, closeDatabase } = require('../../server/models/database');
+const { initDatabase, closeDatabase, getDb } = require('../../server/models/database');
 const expenseModel = require('../../server/models/expenseModel');
 
-// Mock app for testing
 const express = require('express');
 const expensesRouter = require('../../server/routes/expenses');
 const app = express();
@@ -14,14 +13,17 @@ app.use('/api/expenses', expensesRouter);
 
 describe('Expenses API', () => {
   let testCategoryId;
+  const uniqueId = Date.now();
 
-  beforeAll(() => {
+  beforeAll(async () => {
     process.env.DATABASE_PATH = ':memory:';
-    initDatabase();
+    await initDatabase();
     
-    // Create a test category using the model directly
     const categoryModel = require('../../server/models/categoryModel');
-    const category = categoryModel.createCategory({ name: 'API Test', color: '#123456' });
+    const category = categoryModel.createCategory({ 
+      name: `API Test ${uniqueId}`, 
+      color: '#123456' 
+    });
     testCategoryId = category.id;
   });
 
@@ -30,7 +32,6 @@ describe('Expenses API', () => {
   });
 
   beforeEach(() => {
-    const { getDb } = require('../../server/models/database');
     const db = getDb();
     db.exec('DELETE FROM expenses');
   });
@@ -45,7 +46,6 @@ describe('Expenses API', () => {
     });
 
     it('should return paginated expenses', async () => {
-      // Create test expenses
       expenseModel.createExpense({
         amount: 50,
         category_id: testCategoryId,
@@ -166,7 +166,6 @@ describe('Expenses API', () => {
       
       expect(response.status).toBe(204);
       
-      // Verify deletion
       const found = expenseModel.getExpenseById(created.id);
       expect(found).toBeNull();
     });
