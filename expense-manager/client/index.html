@@ -1,211 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Personal Expense Manager - Track and manage your expenses">
-  <title>Expense Manager</title>
-  <link rel="stylesheet" href="styles/main.css">
+  <title>Gestor de Gastos</title>
+  <style>
+    :root { --primary: #2563eb; --bg: #f3f4f6; --text: #1f2937; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    h1 { color: var(--primary); }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; }
+  </style>
 </head>
 <body>
-  <header class="app-header">
-    <div class="container">
-      <h1>💰 Expense Manager</h1>
-      <nav>
-        <button id="export-btn" class="btn-secondary" title="Export data">📥 Export</button>
-        <button id="import-btn" class="btn-secondary" title="Import data">📤 Import</button>
-      </nav>
+  <div class="container">
+    <header>
+      <h1>💰 Gestor de Gastos</h1>
+      <button onclick="exportData()" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">Exportar JSON</button>
+    </header>
+
+    <div class="dashboard-grid">
+      <card>
+        <expense-summary></expense-summary>
+      </card>
+      <card>
+        <expense-form></expense-form>
+      </card>
     </div>
-  </header>
 
-  <main class="container">
-    <section class="dashboard-section">
-      <expense-summary id="summary"></expense-summary>
-    </section>
+    <card>
+      <category-filter></category-filter>
+      <expense-list></expense-list>
+    </card>
+  </div>
 
-    <section class="content-section">
-      <div class="left-column">
-        <expense-form id="expense-form"></expense-form>
-      </div>
-
-      <div class="right-column">
-        <category-filter id="category-filter"></category-filter>
-        <expense-list id="expense-list"></expense-list>
-      </div>
-    </section>
-  </main>
-
-  <footer class="app-footer">
-    <div class="container">
-      <p>&copy; 2024 Expense Manager. Built with Web Components & Node.js</p>
-    </div>
-  </footer>
-
-  <!-- Hidden file input for import -->
-  <input type="file" id="import-file" accept=".json,.csv" style="display: none;">
-
-  <!-- Load Web Components -->
-  <script src="components/expense-form.js" defer></script>
-  <script src="components/expense-list.js" defer></script>
-  <script src="components/expense-summary.js" defer></script>
-  <script src="components/category-filter.js" defer></script>
-
-  <!-- Main App Script -->
+  <script type="module" src="components/category-filter.js"></script>
+  <script type="module" src="components/expense-form.js"></script>
+  <script type="module" src="components/expense-list.js"></script>
+  <script type="module" src="components/expense-summary.js"></script>
+  
   <script>
-    /**
-     * Main Application Logic
-     */
-    document.addEventListener('DOMContentLoaded', () => {
-      const expenseForm = document.getElementById('expense-form');
-      const expenseList = document.getElementById('expense-list');
-      const categoryFilter = document.getElementById('category-filter');
-      const summary = document.getElementById('summary');
-      const exportBtn = document.getElementById('export-btn');
-      const importBtn = document.getElementById('import-btn');
-      const importFile = document.getElementById('import-file');
-
-      // Handle edit expense event
-      expenseList.addEventListener('edit-expense', (e) => {
-        const { id } = e.detail;
-        expenseForm.setAttribute('edit-mode', 'true');
-        expenseForm.setAttribute('expense-id', id);
-        
-        // Scroll to form
-        expenseForm.scrollIntoView({ behavior: 'smooth' });
-      });
-
-      // Handle expense saved event
-      expenseForm.addEventListener('expense-saved', () => {
-        expenseList.refresh();
-        summary.refresh();
-      });
-
-      // Handle expense deleted event
-      expenseList.addEventListener('expense-deleted', () => {
-        summary.refresh();
-      });
-
-      // Handle category change event
-      categoryFilter.addEventListener('category-change', (e) => {
-        const { categoryId } = e.detail;
-        if (categoryId === null) {
-          expenseList.removeAttribute('category-filter');
-        } else {
-          expenseList.setAttribute('category-filter', categoryId);
-        }
-      });
-
-      // Handle cancel edit event
-      expenseForm.addEventListener('cancel-edit', () => {
-        expenseForm.removeAttribute('edit-mode');
-        expenseForm.removeAttribute('expense-id');
-      });
-
-      // Export data functionality
-      exportBtn.addEventListener('click', async () => {
-        try {
-          const [expensesRes, categoriesRes] = await Promise.all([
-            fetch('/api/expenses?limit=1000'),
-            fetch('/api/categories')
-          ]);
-
-          const expenses = await expensesRes.json();
-          const categories = await categoriesRes.json();
-
-          const data = {
-            exportDate: new Date().toISOString(),
-            expenses: expenses.data,
-            categories
-          };
-
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `expense-backup-${new Date().toISOString().split('T')[0]}.json`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        } catch (error) {
-          console.error('Export failed:', error);
-          alert('Failed to export data');
-        }
-      });
-
-      // Import data functionality
-      importBtn.addEventListener('click', () => {
-        importFile.click();
-      });
-
-      importFile.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        try {
-          const text = await file.text();
-          const data = JSON.parse(text);
-
-          if (!data.expenses || !data.categories) {
-            throw new Error('Invalid backup file format');
-          }
-
-          // Import categories first
-          for (const category of data.categories) {
-            try {
-              await fetch('/api/categories', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  name: category.name,
-                  color: category.color
-                })
-              });
-            } catch (err) {
-              // Category might already exist
-              console.log('Category exists:', category.name);
-            }
-          }
-
-          // Get category mapping
-          const categoriesRes = await fetch('/api/categories');
-          const categories = await categoriesRes.json();
-          const categoryMap = {};
-          categories.forEach(cat => {
-            categoryMap[cat.name] = cat.id;
-          });
-
-          // Import expenses
-          for (const expense of data.expenses) {
-            const categoryId = categoryMap[expense.category_name] || expense.category_id;
-            await fetch('/api/expenses', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                amount: expense.amount,
-                category_id: categoryId,
-                description: expense.description,
-                date: expense.date
-              })
-            });
-          }
-
-          alert('Data imported successfully!');
-          expenseList.refresh();
-          summary.refresh();
-        } catch (error) {
-          console.error('Import failed:', error);
-          alert('Failed to import data: ' + error.message);
-        }
-
-        // Reset file input
-        importFile.value = '';
-      });
-
-      // Initial load message
-      console.log('Expense Manager initialized');
-    });
+    async function exportData() {
+      const res = await fetch('/api/expenses');
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gastos_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+    }
   </script>
 </body>
 </html>

@@ -1,40 +1,32 @@
 ```
-# Database files
-*.db
-
-# Environment files
-.env
-.env.local
-*.env.*
-
 # Dependencies
 node_modules/
 
 # Build artifacts
-dist/
-build/
-target/
+coverage/
+lcov-report/
 
-# Python artifacts
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Environment variables
+.env.local
+.env.*
+
+# Database files
+*.db-shm
+*.db-wal
 
 # Logs
 *.log
 
 # Temporary files
 *.tmp
-*.temp
+*.swp
 
-# OS files
+# IDE specific
+.vscode/
+.idea/
+
+# OS generated
 .DS_Store
 Thumbs.db
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
 ```

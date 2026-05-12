@@ -1,76 +1,113 @@
-/**
- * Main server entry point
- * @module server/index
- */
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config();
-
-const expensesRouter = require('./routes/expenses');
-const categoriesRouter = require('./routes/categories');
-const { initDatabase } = require('./models/database');
+const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 6666;
+const PORT = 6666;
+const DB_PATH = path.join(__dirname, '../data/db.json');
 
-// Middleware
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../client')));
 
-// Security headers
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
+const readDB = () => {
+  if (!fs.existsSync(DB_PATH)) {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    fs.writeFileSync(DB_PATH, JSON.stringify({ categories: [], expenses: [] }));
+  }
+  return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+};
+
+const writeDB = (data) => {
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+};
+
+app.get('/api/categories', (req, res) => {
+  const db = readDB();
+  res.json(db.categories);
 });
 
-// Routes
-app.use('/api/expenses', expensesRouter);
-app.use('/api/categories', categoriesRouter);
+app.post('/api/categories', (req, res) => {
+  const db = readDB();
+  const newCat = { id: Date.now(), ...req.body };
+  db.categories.push(newCat);
+  writeDB(db);
+  res.status(201).json(newCat);
+});
 
-// Summary endpoint
-const { getSummary } = require('./controllers/expenseController');
-app.get('/api/summary', async (req, res) => {
+app.get('/api/expenses', (req, res) => {
+  const db = readDB();
+  db.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+  res.json(db.expenses);
+});
+
+app.post('/api/expenses', (req, res) => {
   try {
-    const summary = await getSummary(req.query);
-    res.json(summary);
+    const { amount, category, date, description } = req.body;
+    if (!amount || amount <= 0) throw new Error('Monto inválido');
+    if (!category) throw new Error('Categoría requerida');
+    
+    const db = readDB();
+    const newExpense = {
+      id: Date.now(),
+      amount: parseFloat(amount),
+      category,
+      date,
+      description: description ? description.slice(0, 200) : ''
+    };
+    
+    db.expenses.push(newExpense);
+    writeDB(db);
+    res.status(201).json(newExpense);
   } catch (error) {
-    console.error('Error getting summary:', error);
-    res.status(500).json({ error: 'Failed to get summary' });
+    res.status(400).json({ error: error.message });
   }
 });
 
-// Serve static files
-app.use(express.static(path.join(__dirname, '../client')));
+app.put('/api/expenses/:id', (req, res) => {
+  const db = readDB();
+  const index = db.expenses.findIndex(e => e.id == req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'No encontrado' });
+  
+  db.expenses[index] = { ...db.expenses[index], ...req.body };
+  writeDB(db);
+  res.json(db.expenses[index]);
+});
 
-// Serve index.html for all other routes (catch-all)
-app.get('/{*splat}', (req, res) => {
+app.delete('/api/expenses/:id', (req, res) => {
+  const db = readDB();
+  db.expenses = db.expenses.filter(e => e.id != req.params.id);
+  writeDB(db);
+  res.status(204).send();
+});
+
+app.get('/api/summary', (req, res) => {
+  const db = readDB();
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const monthlyExpenses = db.expenses.filter(e => {
+    const d = new Date(e.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  const total = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
+  
+  const byCategory = {};
+  monthlyExpenses.forEach(e => {
+    byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
+  });
+
+  res.json({ total, byCategory, count: monthlyExpenses.length });
+});
+
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+app.listen(PORT, () => {
+  console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`📂 Base de datos: ${DB_PATH}`);
 });
-
-// Initialize database and start server
-initDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Expense Manager server running on http://localhost:${PORT}`);
-  });
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
-
-module.exports = app;
